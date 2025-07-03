@@ -1,0 +1,15 @@
+meta {
+  name: Health Check request
+  type: http
+  seq: 7
+}
+
+get {
+  url: http://localhost:3001/health
+  body: json
+  auth: none
+}
+
+body:json {
+  {}
+}

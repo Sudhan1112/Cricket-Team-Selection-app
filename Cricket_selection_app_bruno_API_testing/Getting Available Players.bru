@@ -1,0 +1,11 @@
+meta {
+  name: Getting Available Players
+  type: http
+  seq: 4
+}
+
+get {
+  url: http://localhost:3001/api/rooms/players/available
+  body: json
+  auth: none
+}

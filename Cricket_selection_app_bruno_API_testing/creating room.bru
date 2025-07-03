@@ -1,0 +1,22 @@
+meta {
+  name: creating room
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3001/api/rooms/create
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "hostId": "user123",
+    "hostName": "MS Dhoni"
+  }
+}

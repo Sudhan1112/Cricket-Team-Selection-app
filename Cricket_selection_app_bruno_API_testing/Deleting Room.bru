@@ -1,0 +1,21 @@
+meta {
+  name: Deleting Room
+  type: http
+  seq: 6
+}
+
+delete {
+  url: http://localhost:3001/api/rooms/ab9d9be9-a8f8-4f8d-a5b6-192a4f6ec415
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "userId": "user123"
+  }
+}

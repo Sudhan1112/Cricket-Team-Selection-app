@@ -1,0 +1,9 @@
+{
+  "version": "1",
+  "name": "Cricket_selection_app_bruno_API_testing",
+  "type": "collection",
+  "ignore": [
+    "node_modules",
+    ".git"
+  ]
+}

@@ -1,0 +1,23 @@
+meta {
+  name: joining Room
+  type: http
+  seq: 2
+}
+
+post {
+  url: http://localhost:3001/api/rooms/join
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "roomId": "ab9d9be9-a8f8-4f8d-a5b6-192a4f6ec415",
+    "userId": "user456",
+    "userName": "Virat Kohli"
+  }
+}
