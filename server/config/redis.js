@@ -1,43 +1,71 @@
 const { createClient } = require('redis');
 
-const redisClient = createClient({
-  url: process.env.REDIS_URL || 'redis://localhost:6379',
-  retry_strategy: (options) => {
-    if (options.error && options.error.code === 'ECONNREFUSED') {
-      return new Error('Redis server connection refused');
+// In-memory fallback storage
+const memoryStore = new Map();
+
+// Mock Redis client for development
+const mockRedisClient = {
+  isConnected: false,
+
+  async get(key) {
+    return memoryStore.get(key) || null;
+  },
+
+  async set(key, value, options = {}) {
+    memoryStore.set(key, value);
+    if (options.EX) {
+      // Simulate expiration (simplified)
+      setTimeout(() => {
+        memoryStore.delete(key);
+      }, options.EX * 1000);
     }
-    if (options.total_retry_time > 1000 * 60 * 60) {
-      return new Error('Retry time exhausted');
-    }
-    if (options.attempt > 10) {
-      return undefined;
-    }
-    return Math.min(options.attempt * 100, 3000);
+    return 'OK';
+  },
+
+  async del(key) {
+    return memoryStore.delete(key) ? 1 : 0;
+  },
+
+  async exists(key) {
+    return memoryStore.has(key) ? 1 : 0;
+  },
+
+  async keys(pattern) {
+    const keys = Array.from(memoryStore.keys());
+    if (pattern === '*') return keys;
+    // Simple pattern matching for development
+    const regex = new RegExp(pattern.replace('*', '.*'));
+    return keys.filter(key => regex.test(key));
+  },
+
+  async disconnect() {
+    memoryStore.clear();
   }
-});
+};
 
-redisClient.on('error', (err) => {
-  console.error('Redis Client Error:', err);
-});
+let redisClient;
 
-redisClient.on('connect', () => {
-  console.log('Connected to Redis');
-});
-
-redisClient.on('ready', () => {
-  console.log('Redis client ready');
-});
-
-redisClient.on('end', () => {
-  console.log('Redis connection ended');
-});
-
-// Connect to Redis
+// Try to connect to Redis, fallback to memory store
 (async () => {
   try {
+    redisClient = createClient({
+      url: process.env.REDIS_URL || 'redis://localhost:6379',
+      socket: {
+        connectTimeout: 5000,
+        lazyConnect: true
+      }
+    });
+
+    redisClient.on('error', (err) => {
+      console.warn('Redis Client Error (using memory fallback):', err.message);
+    });
+
     await redisClient.connect();
+    console.log('✅ Connected to Redis');
+
   } catch (error) {
-    console.error('Failed to connect to Redis:', error);
+    console.warn('⚠️  Redis not available, using in-memory storage for development');
+    redisClient = mockRedisClient;
   }
 })();
 

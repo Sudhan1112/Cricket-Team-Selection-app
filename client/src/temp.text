@@ -1,0 +1,830 @@
+import React, { createContext, useContext, useReducer, useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
+import { User, Users, Home, Timer, Copy, Check, Crown, Play } from 'lucide-react';
+
+// Socket connection
+const SOCKET_URL = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+
+// Socket Events (should match your backend constants)
+const SOCKET_EVENTS = {
+  // Client to Server
+  JOIN_ROOM: 'join-room',
+  START_SELECTION: 'start-selection',
+  SELECT_PLAYER: 'select-player',
+ 
+  // Server to Client
+  ROOM_JOINED: 'room-joined',
+  USER_JOINED: 'user-joined',
+  USER_LEFT: 'user-left',
+  SELECTION_STARTED: 'selection-started',
+  TURN_STARTED: 'turn-started',
+  PLAYER_SELECTED: 'player-selected',
+  AUTO_SELECTED: 'auto-selected',
+  SELECTION_ENDED: 'selection-ended',
+  ERROR: 'error',
+  ROOM_UPDATED: 'room-updated'
+};
+
+// Cricket players data (this will be loaded from backend)
+const cricketPlayers = [];
+
+// Action types
+const ActionTypes = {
+  SET_USER: 'SET_USER',
+  SET_ROOM: 'SET_ROOM',
+  UPDATE_ROOM: 'UPDATE_ROOM',
+  SET_SOCKET: 'SET_SOCKET',
+  SET_CURRENT_TURN: 'SET_CURRENT_TURN',
+  SET_TIMER: 'SET_TIMER',
+  SET_SELECTION_STATUS: 'SET_SELECTION_STATUS',
+  SET_TOAST: 'SET_TOAST',
+  CLEAR_TOAST: 'CLEAR_TOAST',
+  SET_LOADING: 'SET_LOADING',
+  SET_CONNECTED: 'SET_CONNECTED'
+};
+
+// Initial state
+const initialState = {
+  user: null,
+  room: null,
+  socket: null,
+  currentTurn: null,
+  timer: 0,
+  isSelectionActive: false,
+  toast: null,
+  loading: false,
+  connected: false
+};
+
+// Reducer function
+const appReducer = (state, action) => {
+  switch (action.type) {
+    case ActionTypes.SET_USER:
+      return { ...state, user: action.payload };
+    case ActionTypes.SET_ROOM:
+      return { ...state, room: action.payload };
+    case ActionTypes.UPDATE_ROOM:
+      return { ...state, room: { ...state.room, ...action.payload } };
+    case ActionTypes.SET_SOCKET:
+      return { ...state, socket: action.payload };
+    case ActionTypes.SET_CURRENT_TURN:
+      return { ...state, currentTurn: action.payload };
+    case ActionTypes.SET_TIMER:
+      return { ...state, timer: action.payload };
+    case ActionTypes.SET_SELECTION_STATUS:
+      return { ...state, isSelectionActive: action.payload };
+    case ActionTypes.SET_TOAST:
+      return { ...state, toast: action.payload };
+    case ActionTypes.CLEAR_TOAST:
+      return { ...state, toast: null };
+    case ActionTypes.SET_LOADING:
+      return { ...state, loading: action.payload };
+    case ActionTypes.SET_CONNECTED:
+      return { ...state, connected: action.payload };
+    default:
+      return state;
+  }
+};
+
+// Context
+const AppContext = createContext();
+
+// Socket service
+const createSocket = () => {
+  console.log('Creating socket connection to:', SOCKET_URL);
+  const socket = io(SOCKET_URL, {
+    transports: ['websocket', 'polling'],
+    timeout: 20000,
+    forceNew: true
+  });
+
+  socket.on('connect', () => {
+    console.log('✅ Connected to server:', socket.id);
+  });
+
+  socket.on('disconnect', (reason) => {
+    console.log('❌ Disconnected from server. Reason:', reason);
+  });
+
+  socket.on('connect_error', (error) => {
+    console.error('🔥 Connection error:', error);
+  });
+
+  return socket;
+};
+
+// UI Components (keep all your existing UI components - Button, Card, Input, etc.)
+const Button = ({ children, variant = 'primary', size = 'md', disabled = false, onClick, className = '', icon: Icon, ...props }) => {
+  const baseClasses = "inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-900";
+  const variants = {
+    primary: "bg-blue-600 hover:bg-blue-700 text-white border border-blue-600 focus:ring-blue-500",
+    secondary: "bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-600 focus:ring-gray-500",
+    danger: "bg-red-600 hover:bg-red-700 text-white border border-red-600 focus:ring-red-500",
+    ghost: "bg-transparent hover:bg-gray-800 text-gray-200 border border-gray-600 focus:ring-gray-500"
+  };
+  const sizes = {
+    sm: "px-3 py-1.5 text-sm",
+    md: "px-4 py-2 text-sm",
+    lg: "px-6 py-3 text-base"
+  };
+  const disabledClasses = disabled ? "opacity-50 cursor-not-allowed" : "";
+
+  return (
+    <button
+      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${disabledClasses} ${className}`}
+      disabled={disabled}
+      onClick={onClick}
+      {...props}
+    >
+      {Icon && <Icon className="w-4 h-4 mr-2" />}
+      {children}
+    </button>
+  );
+};
+
+const Card = ({ children, className = '', ...props }) => {
+  return (
+    <div className={`bg-gray-800 rounded-lg border border-gray-700 shadow-lg ${className}`} {...props}>
+      {children}
+    </div>
+  );
+};
+
+const Input = ({ label, error, icon: Icon, className = '', ...props }) => {
+  return (
+    <div className="space-y-1">
+      {label && (
+        <label className="block text-sm font-medium text-gray-200">
+          {label}
+        </label>
+      )}
+      <div className="relative">
+        {Icon && (
+          <Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+        )}
+        <input
+          className={`
+            w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-gray-200 placeholder-gray-400
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+            ${Icon ? 'pl-10' : ''}
+            ${error ? 'border-red-500' : ''}
+            ${className}
+          `}
+          {...props}
+        />
+      </div>
+      {error && <p className="text-sm text-red-400">{error}</p>}
+    </div>
+  );
+};
+
+const Toast = ({ message, type, onClose }) => {
+  const bgColor = type === 'error' ? 'bg-red-900' : type === 'success' ? 'bg-green-900' : 'bg-blue-900';
+  const textColor = type === 'error' ? 'text-red-200' : type === 'success' ? 'text-green-200' : 'text-blue-200';
+ 
+  return (
+    <div className={`fixed top-4 right-4 ${bgColor} ${textColor} px-4 py-3 rounded-lg shadow-lg z-50 border border-gray-600 min-w-[300px]`}>
+      <div className="flex items-center justify-between">
+        <p className="text-sm font-medium">{message}</p>
+        <button onClick={onClose} className="ml-4 text-gray-400 hover:text-white">
+          ×
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// Updated HomeScreen with real socket connection
+const HomeScreen = ({ onNavigate }) => {
+  const [userName, setUserName] = useState('');
+  const [roomId, setRoomId] = useState('');
+  const [error, setError] = useState('');
+  const { state, actions } = useApp();
+
+  useEffect(() => {
+    // Initialize socket connection
+    if (!state.socket) {
+      const socket = createSocket();
+      actions.setSocket(socket);
+
+      socket.on('connect', () => {
+        actions.setConnected(true);
+        console.log('Socket connected:', socket.id);
+      });
+
+      socket.on('disconnect', () => {
+        actions.setConnected(false);
+        console.log('Socket disconnected');
+      });
+
+      // Socket event listeners
+      socket.on(SOCKET_EVENTS.ROOM_JOINED, (data) => {
+        console.log('Room joined data:', data);
+        actions.setRoom(data.room);
+        // Find the user in the room data
+        const user = data.room.users.find(u => u.id === data.userId);
+        actions.setUser(user);
+        actions.showToast('Room joined successfully!', 'success');
+        onNavigate('room');
+      });
+
+      socket.on(SOCKET_EVENTS.ERROR, (error) => {
+        actions.showToast(error.message, 'error');
+        setError(error.message);
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [state.socket, actions, onNavigate]);
+
+  const handleCreateRoom = async () => {
+    if (!userName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+
+    if (!state.socket || !state.connected) {
+      setError('Not connected to server');
+      return;
+    }
+
+    try {
+      actions.setLoading(true);
+     
+      // Create room via API
+      const response = await fetch(`${SOCKET_URL}/api/rooms/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          hostId: state.socket.id,
+          hostName: userName
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create room');
+      }
+
+      const data = await response.json();
+     
+      // Join the room via socket
+      state.socket.emit(SOCKET_EVENTS.JOIN_ROOM, {
+        roomId: data.roomId,
+        userId: state.socket.id,
+        userName: userName
+      });
+
+    } catch (err) {
+      setError(err.message);
+      actions.showToast(err.message, 'error');
+    } finally {
+      actions.setLoading(false);
+    }
+  };
+
+  const handleJoinRoom = () => {
+    if (!userName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+    if (!roomId.trim()) {
+      setError('Please enter room ID');
+      return;
+    }
+
+    if (!state.socket || !state.connected) {
+      setError('Not connected to server');
+      return;
+    }
+
+    actions.setLoading(true);
+   
+    // Join room via socket
+    state.socket.emit(SOCKET_EVENTS.JOIN_ROOM, {
+      roomId: roomId.toUpperCase(),
+      userId: state.socket.id,
+      userName: userName
+    });
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <Card className="w-full max-w-md p-8">
+        <div className="text-center mb-8">
+          <h1 className="text-3xl font-bold text-white mb-4">Cricket Team Selection</h1>
+          <p className="text-gray-400">Join or create a room to start selecting your dream cricket team</p>
+          <div className="mt-2 flex items-center justify-center">
+            <div className={`w-2 h-2 rounded-full mr-2 ${state.connected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className={`text-sm ${state.connected ? 'text-green-400' : 'text-red-400'}`}>
+              {state.connected ? 'Connected' : 'Disconnected'}
+            </span>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <Input
+            label="Your Name"
+            icon={User}
+            value={userName}
+            onChange={(e) => setUserName(e.target.value)}
+            placeholder="Enter your name"
+            error={error.includes('name') ? error : ''}
+          />
+
+          <div className="space-y-4">
+            <Button
+              onClick={handleCreateRoom}
+              className="w-full"
+              icon={Home}
+              size="lg"
+              disabled={!state.connected || state.loading}
+            >
+              Create New Room
+            </Button>
+
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-600"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-gray-800 text-gray-400">or</span>
+              </div>
+            </div>
+
+            <Input
+              label="Room ID"
+              icon={Users}
+              value={roomId}
+              onChange={(e) => setRoomId(e.target.value)}
+              placeholder="Enter room ID"
+              error={error.includes('room') ? error : ''}
+            />
+
+            <Button
+              onClick={handleJoinRoom}
+              variant="secondary"
+              className="w-full"
+              icon={Users}
+              size="lg"
+              disabled={!state.connected || state.loading}
+            >
+              Join Room
+            </Button>
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
+// Updated RoomScreen with real socket events
+const RoomScreen = () => {
+  const { state, actions } = useApp();
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    if (!state.socket) return;
+
+    const socket = state.socket;
+
+    // Socket event listeners for room
+    socket.on(SOCKET_EVENTS.USER_JOINED, (data) => {
+      actions.updateRoom(data.room);
+      actions.showToast(`${data.user.name} joined the room`, 'info');
+    });
+
+    socket.on(SOCKET_EVENTS.USER_LEFT, (data) => {
+      actions.showToast(`${data.userName} left the room`, 'info');
+    });
+
+    socket.on(SOCKET_EVENTS.SELECTION_STARTED, (data) => {
+      actions.setSelectionStatus(true);
+      actions.updateRoom(data.room);
+      actions.showToast('Selection started!', 'success');
+    });
+
+    socket.on(SOCKET_EVENTS.TURN_STARTED, (data) => {
+      actions.setCurrentTurn({
+        userId: data.userId,
+        userName: data.userName
+      });
+      actions.setTimer(data.timeLimit / 1000); // Convert ms to seconds
+      actions.updateRoom(data.room);
+    });
+
+    socket.on(SOCKET_EVENTS.PLAYER_SELECTED, (data) => {
+      actions.updateRoom(data.room);
+      actions.showToast(`${data.player.name} selected by ${data.userName}`, 'success');
+    });
+
+    socket.on(SOCKET_EVENTS.AUTO_SELECTED, (data) => {
+      actions.updateRoom(data.room);
+      actions.showToast(`${data.player.name} auto-selected for ${data.userName}`, 'info');
+    });
+
+    socket.on(SOCKET_EVENTS.SELECTION_ENDED, () => {
+      actions.setSelectionStatus(false);
+      actions.setCurrentTurn(null);
+      actions.showToast('Selection completed!', 'success');
+    });
+
+    socket.on(SOCKET_EVENTS.ROOM_UPDATED, (data) => {
+      actions.updateRoom(data.room);
+    });
+
+    return () => {
+      socket.off(SOCKET_EVENTS.USER_JOINED);
+      socket.off(SOCKET_EVENTS.USER_LEFT);
+      socket.off(SOCKET_EVENTS.SELECTION_STARTED);
+      socket.off(SOCKET_EVENTS.TURN_STARTED);
+      socket.off(SOCKET_EVENTS.PLAYER_SELECTED);
+      socket.off(SOCKET_EVENTS.AUTO_SELECTED);
+      socket.off(SOCKET_EVENTS.SELECTION_ENDED);
+      socket.off(SOCKET_EVENTS.ROOM_UPDATED);
+    };
+  }, [state.socket, actions]);
+
+  // Timer effect
+  useEffect(() => {
+    if (state.isSelectionActive && timer > 0) {
+      const interval = setInterval(() => {
+        setTimer(prev => prev - 1);
+      }, 1000);
+      return () => clearInterval(interval);
+    }
+  }, [state.isSelectionActive, timer]);
+
+  // Sync timer with state
+  useEffect(() => {
+    setTimer(state.timer);
+  }, [state.timer]);
+
+  const handleStartSelection = () => {
+    if (state.socket) {
+      state.socket.emit(SOCKET_EVENTS.START_SELECTION, {
+        roomId: state.room.id
+      });
+    }
+  };
+
+  const handlePlayerSelect = (player) => {
+    if (state.socket) {
+      state.socket.emit(SOCKET_EVENTS.SELECT_PLAYER, {
+        roomId: state.room.id,
+        playerId: player.id
+      });
+    }
+  };
+
+  const isMyTurn = state.currentTurn?.userId === state.user?.id;
+
+  return (
+    <div className="min-h-screen bg-gray-900 p-4">
+      <div className="max-w-7xl mx-auto">
+        <RoomHeader timer={timer} />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <UsersList onStartSelection={handleStartSelection} />
+          <div className="lg:col-span-2">
+            <PlayersGrid
+              timer={timer}
+              onPlayerSelect={handlePlayerSelect}
+              isMyTurn={isMyTurn}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Keep all other components (RoomHeader, UsersList, PlayersGrid, etc.) with minor updates
+const RoomHeader = ({ timer }) => {
+  const { state } = useApp();
+  const [copied, setCopied] = useState(false);
+  const room = state.room;
+  const isHost = state.user?.id === room?.hostId;
+  const isSelectionActive = state.isSelectionActive;
+
+  const copyRoomId = () => {
+    navigator.clipboard.writeText(room?.id || '');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Card className="mb-6 p-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white mb-2">Cricket Team Selection Room</h1>
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center">
+              <span className="text-gray-400 mr-2">Room ID:</span>
+              <code className="bg-gray-700 px-2 py-1 rounded text-blue-400">{room?.id}</code>
+              <Button
+                onClick={copyRoomId}
+                variant="ghost"
+                size="sm"
+                className="ml-2"
+              >
+                {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+              </Button>
+            </div>
+            {isHost && (
+              <div className="flex items-center">
+                <Crown className="w-4 h-4 text-yellow-400 mr-1" />
+                <span className="text-yellow-400 text-sm">Host</span>
+              </div>
+            )}
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="text-gray-400">Players: {room?.users?.length || 0}/6</p>
+          {isSelectionActive && (
+            <div className="flex items-center mt-2">
+              <Timer className="w-4 h-4 text-orange-400 mr-1" />
+              <span className="text-orange-400 font-mono">{timer}s</span>
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  );
+};
+
+const UsersList = ({ onStartSelection }) => {
+  const { state } = useApp();
+  const room = state.room;
+  const user = state.user;
+  const isHost = user?.id === room?.hostId;
+  const isSelectionActive = state.isSelectionActive;
+
+  return (
+    <Card className="p-4">
+      <h2 className="text-xl font-semibold text-white mb-4">Players</h2>
+      <div className="space-y-3">
+        {room?.users?.map((player) => (
+          <div
+            key={player.id}
+            className={`p-3 rounded-lg border ${
+              state.currentTurn?.userId === player.id
+                ? 'border-blue-500 bg-blue-900/20'
+                : 'border-gray-600 bg-gray-700/50'
+            }`}
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3">
+                  {player.name.charAt(0).toUpperCase()}
+                </div>
+                <div>
+                  <p className="text-white font-medium">{player.name}</p>
+                  <p className="text-gray-400 text-sm">{player.selectedPlayers?.length || 0}/5 players</p>
+                </div>
+              </div>
+              {player.id === room?.hostId && (
+                <Crown className="w-4 h-4 text-yellow-400" />
+              )}
+            </div>
+            {player.selectedPlayers?.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {player.selectedPlayers.map((p) => (
+                  <span
+                    key={p.id}
+                    className="text-xs bg-gray-600 text-gray-200 px-2 py-1 rounded"
+                  >
+                    {p.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {isHost && !isSelectionActive && (
+        <Button
+          onClick={onStartSelection}
+          className="w-full mt-4"
+          icon={Play}
+          disabled={!room?.users || room.users.length < 2}
+        >
+          Start Selection
+        </Button>
+      )}
+    </Card>
+  );
+};
+
+// CurrentTurnDisplay component
+const CurrentTurnDisplay = ({ currentTurn, isMyTurn, timer }) => {
+  return (
+    <div className={`mb-4 p-3 rounded-lg border ${
+      isMyTurn ? 'border-green-500 bg-green-900/20' : 'border-blue-500 bg-blue-900/20'
+    }`}>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <div className={`w-3 h-3 rounded-full mr-2 ${
+            isMyTurn ? 'bg-green-500' : 'bg-blue-500'
+          }`}></div>
+          <span className="text-white font-medium">
+            {isMyTurn ? "Your turn!" : `${currentTurn.userName}'s turn`}
+          </span>
+        </div>
+        <div className="flex items-center">
+          <Timer className="w-4 h-4 text-orange-400 mr-1" />
+          <span className={`font-mono ${timer <= 5 ? 'text-red-400' : 'text-orange-400'}`}>
+            {timer}s
+          </span>
+        </div>
+      </div>
+      {isMyTurn && (
+        <p className="text-sm text-gray-400 mt-1">Select a player to add to your team</p>
+      )}
+    </div>
+  );
+};
+
+// PlayerCard component
+const PlayerCard = ({ player, onSelect, isClickable }) => {
+  const getRoleColor = (role) => {
+    switch (role) {
+      case 'Batsman': return 'bg-blue-600';
+      case 'Bowler': return 'bg-red-600';
+      case 'Wicket-keeper': return 'bg-green-600';
+      case 'All-rounder': return 'bg-purple-600';
+      default: return 'bg-gray-600';
+    }
+  };
+
+  const handleClick = () => {
+    if (isClickable && onSelect) {
+      onSelect(player);
+    }
+  };
+
+  return (
+    <div
+      className={`p-3 rounded-lg border transition-all duration-200 ${
+        isClickable
+          ? 'border-gray-600 bg-gray-700/50 hover:border-blue-500 hover:bg-blue-900/20 cursor-pointer'
+          : 'border-gray-700 bg-gray-800/50 cursor-not-allowed opacity-60'
+      }`}
+      onClick={handleClick}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-white font-medium text-sm">{player.name}</h3>
+        <span className={`text-xs px-2 py-1 rounded text-white ${getRoleColor(player.role)}`}>
+          {player.role}
+        </span>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-gray-400 text-xs">{player.team}</span>
+        {isClickable && (
+          <span className="text-blue-400 text-xs">Click to select</span>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const PlayersGrid = ({ timer }) => {
+  const { state } = useApp();
+  const room = state.room;
+  const currentTurn = state.currentTurn;
+  const isMyTurn = currentTurn?.userId === state.user?.id;
+  const isSelectionActive = state.isSelectionActive;
+
+  const handlePlayerSelect = (player) => {
+    if (!isMyTurn || !isSelectionActive || !state.socket) return;
+
+    // Send player selection to backend via socket
+    state.socket.emit(SOCKET_EVENTS.SELECT_PLAYER, {
+      roomId: room.id,
+      playerId: player.id
+    });
+  };
+
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-semibold text-white">Available Players</h2>
+        <span className="text-gray-400">
+          {room?.availablePlayers?.length || 0} players available
+        </span>
+      </div>
+
+      {isSelectionActive && currentTurn && (
+        <CurrentTurnDisplay currentTurn={currentTurn} isMyTurn={isMyTurn} timer={timer} />
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 max-h-96 overflow-y-auto">
+        {room?.availablePlayers?.map((player) => (
+          <PlayerCard
+            key={player.id}
+            player={player}
+            onSelect={handlePlayerSelect}
+            isClickable={isMyTurn && isSelectionActive}
+          />
+        ))}
+      </div>
+    </Card>
+  );
+};
+
+
+// Context Provider with socket management
+const AppProvider = ({ children }) => {
+  const [state, dispatch] = useReducer(appReducer, initialState);
+
+  const actions = {
+    setUser: (user) => dispatch({ type: ActionTypes.SET_USER, payload: user }),
+    setRoom: (room) => dispatch({ type: ActionTypes.SET_ROOM, payload: room }),
+    updateRoom: (updates) => dispatch({ type: ActionTypes.UPDATE_ROOM, payload: updates }),
+    setSocket: (socket) => dispatch({ type: ActionTypes.SET_SOCKET, payload: socket }),
+    setCurrentTurn: (turn) => dispatch({ type: ActionTypes.SET_CURRENT_TURN, payload: turn }),
+    setTimer: (timer) => dispatch({ type: ActionTypes.SET_TIMER, payload: timer }),
+    setSelectionStatus: (status) => dispatch({ type: ActionTypes.SET_SELECTION_STATUS, payload: status }),
+    showToast: (message, type = 'info') => dispatch({ type: ActionTypes.SET_TOAST, payload: { message, type } }),
+    clearToast: () => dispatch({ type: ActionTypes.CLEAR_TOAST }),
+    setLoading: (loading) => dispatch({ type: ActionTypes.SET_LOADING, payload: loading }),
+    setConnected: (connected) => dispatch({ type: ActionTypes.SET_CONNECTED, payload: connected })
+  };
+
+  return (
+    <AppContext.Provider value={{ state, actions }}>
+      {children}
+    </AppContext.Provider>
+  );
+};
+
+// Custom hook
+const useApp = () => {
+  const context = useContext(AppContext);
+  if (!context) {
+    throw new Error('useApp must be used within an AppProvider');
+  }
+  return context;
+};
+
+// Rest of your components remain the same...
+const AppContent = () => {
+  const { state, actions } = useApp();
+  const [currentPage, setCurrentPage] = useState('home');
+
+  const navigate = (page) => {
+    setCurrentPage(page);
+  };
+
+  useEffect(() => {
+    if (state.toast) {
+      const timer = setTimeout(() => {
+        actions.clearToast();
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [state.toast, actions]);
+
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'home':
+        return <HomeScreen onNavigate={navigate} />;
+      case 'room':
+        return <RoomScreen onNavigate={navigate} />;
+      default:
+        return <HomeScreen onNavigate={navigate} />;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      {renderPage()}
+     
+      {state.toast && (
+        <Toast
+          message={state.toast.message}
+          type={state.toast.type}
+          onClose={actions.clearToast}
+        />
+      )}
+     
+      {state.loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50">
+          <div className="bg-gray-800 p-6 rounded-md shadow-lg flex flex-col items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400"></div>
+            <p className="mt-3 text-gray-200">Loading...</p>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const App = () => (
+  <AppProvider>
+    <AppContent />
+  </AppProvider>
+);
+
+export default App;
