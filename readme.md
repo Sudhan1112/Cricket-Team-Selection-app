@@ -1,4 +1,4 @@
-# Cricket Team Selection Room - Backend
+# Cricket Team Selection Room
 
 A real-time multiplayer backend for cricket team selection using Express.js, Socket.IO, and Redis. This system allows multiple users to join rooms and take turns selecting cricket players in a real-time environment with comprehensive Docker support and API testing suite.
 
