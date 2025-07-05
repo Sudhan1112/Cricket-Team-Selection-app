@@ -1,98 +1,190 @@
-# Cricket Team Selection Room
+# Cricket Team Selection App
 
-A real-time multiplayer backend for cricket team selection using Express.js, Socket.IO, and Redis. This system allows multiple users to join rooms and take turns selecting cricket players in a real-time environment with comprehensive Docker support and API testing suite.
+A comprehensive real-time multiplayer cricket team selection system built with modern web technologies. This application enables multiple users to join rooms and take turns selecting cricket players in a real-time environment with turn-based gameplay, auto-selection, and comprehensive room management.
 
-## 🚀 Features
+🌐 **Live Demo**: [cricket-team-selection-app.vercel.app](https://cricket-team-selection-app.vercel.app)
 
-- **Real-time Communication**: WebSocket-based real-time updates using Socket.IO
+## 🚀 Overview
+
+This full-stack application consists of a React frontend deployed on Vercel and a Node.js backend with Socket.IO for real-time communication. Users can create or join rooms, participate in turn-based cricket player selection with 10-second timers, and experience seamless real-time updates across all connected clients.
+
+### Key Features
+
+- **Real-time Multiplayer**: WebSocket-based communication using Socket.IO
 - **Turn-based Selection**: 10-second turn timer with auto-selection fallback
-- **Room Management**: Create, join, leave rooms with host privileges
-- **User Management**: Multi-user support with reconnection handling
-- **Redis Persistence**: Room data persistence with configurable TTL
-- **Docker Ready**: Production-ready containerization with multi-stage builds
-- **Health Monitoring**: Built-in health checks and monitoring endpoints
-- **API Testing**: Comprehensive Bruno API testing suite
-- **Scalable Architecture**: Clean separation with services, controllers, and models
+- **Room Management**: Create, join, and manage rooms with host privileges
+- **Responsive Design**: Mobile-first design with TailwindCSS
+- **Cloud Deployment**: Frontend on Vercel, backend ready for containerization
+- **Comprehensive Testing**: Bruno API testing suite and Socket.IO test scripts
+- **Modern Architecture**: Clean separation of concerns with modular design
 
 ## 🛠 Tech Stack
 
-- **Runtime**: Node.js 18+ (Alpine Linux in containers)
-- **Framework**: Express.js 4.x
-- **Real-time**: Socket.IO 4.8+
-- **Database**: Redis 7+ (for session storage and caching)
+### Frontend
+- **Framework**: React 19.1.0 with functional components
+- **Build Tool**: Vite 7.0.0 with lightning-fast HMR
+- **Styling**: TailwindCSS 4.1.11 for responsive design
+- **Real-time**: Socket.IO Client 4.8.1
+- **State Management**: Context API with useReducer
+- **Icons**: Lucide React 0.525.0
+- **Deployment**: Vercel (Production)
+
+### Backend
+- **Runtime**: Node.js 18+ with Express.js 4.x
+- **Real-time**: Socket.IO 4.8+ for WebSocket communication
+- **Database**: Redis 7+ for session storage and caching
 - **Validation**: Joi schema validation
-- **Containerization**: Docker & Docker Compose
-- **Testing**: Bruno API Client, Custom Socket.IO test scripts
-- **Security**: Non-root containers, CORS protection, input validation
+- **Containerization**: Docker & Docker Compose ready
+- **Testing**: Bruno API Client with comprehensive test suite
 
 ## 📋 Prerequisites
 
 - **Development**: Node.js 18+, Redis 7+, npm/yarn
-- **Docker**: Docker 20.10+, Docker Compose 2.0+
-- **Testing**: Bruno API Client (optional)
-- **Ports**: 3001 (API), 6379 (Redis)
+- **Docker**: Docker 20.10+, Docker Compose 2.0+ (optional)
+- **Browser**: Modern browser with WebSocket support
 
 ## 🚀 Quick Start
 
-### Option 1: Docker Deployment (Recommended)
+### Option 1: Full Local Development
+
+```bash
+# Clone repository
+git clone <repository-url>
+cd cricket-team-selection-app
+
+# Backend setup
+cd server
+npm install
+redis-server  # Start Redis in separate terminal
+cp .env.example .env
+npm run dev
+
+# Frontend setup (new terminal)
+cd ../client
+npm install
+npm run dev
+
+# Access application
+# Frontend: http://localhost:5173
+# Backend API: http://localhost:3001
+```
+
+### Option 2: Docker Deployment
 
 ```bash
 # Clone and navigate
 git clone <repository-url>
 cd cricket-team-selection-app
 
-# Quick deploy with script
-./deploy.sh        # Linux/Mac
-deploy.bat         # Windows
-
-# Or manual Docker Compose
+# Deploy with Docker Compose
 docker-compose up --build -d
 
-# Verify deployment
-curl http://localhost:3001/health
+# Access application
+# Frontend: http://localhost:80
+# Backend API: http://localhost:3001
+# Redis: localhost:6379
 ```
 
-### Option 2: Local Development
+### Option 3: Production Access
 
+Visit the live application: [cricket-team-selection-app.vercel.app](https://cricket-team-selection-app.vercel.app)
+
+## � Project Structure
+
+```
+cricket-team-selection-app/
+├── client/                           # React Frontend
+│   ├── src/
+│   │   ├── components/              # React components
+│   │   │   ├── HomeScreen.jsx       # Landing page
+│   │   │   ├── RoomScreen.jsx       # Game room interface
+│   │   │   ├── PlayerCard.jsx       # Player selection cards
+│   │   │   └── Toast.jsx            # Notification system
+│   │   ├── context/
+│   │   │   └── AppContext.jsx       # Global state management
+│   │   ├── hooks/
+│   │   │   └── useSocket.js         # Socket.IO integration
+│   │   ├── services/
+│   │   │   └── socketService.js     # Socket service layer
+│   │   ├── store/
+│   │   │   ├── reducer.js           # State reducer
+│   │   │   └── types.js             # Action types
+│   │   ├── constants/
+│   │   │   └── index.js             # Frontend constants
+│   │   ├── utils/
+│   │   │   └── helpers.js           # Utility functions
+│   │   └── App.jsx                  # Main application
+│   ├── public/                      # Static assets
+│   ├── Dockerfile                   # Frontend container
+│   ├── package.json                 # Frontend dependencies
+│   └── vite.config.js               # Vite configuration
+├── server/                          # Node.js Backend
+│   ├── controllers/
+│   │   └── socketController.js      # Socket.IO event handlers
+│   ├── models/
+│   │   ├── Room.js                  # Room data model
+│   │   └── User.js                  # User data model
+│   ├── services/
+│   │   └── roomService.js           # Room business logic
+│   ├── constants/
+│   │   ├── index.js                 # Backend constants
+│   │   └── cricketPlayers.js        # Cricket player data
+│   ├── config/
+│   │   └── redis.js                 # Redis configuration
+│   ├── utils/
+│   │   └── validation.js            # Input validation
+│   ├── Dockerfile                   # Backend container
+│   ├── package.json                 # Backend dependencies
+│   └── server.js                    # Server entry point
+├── Cricket_selection_app_bruno_API_testing/  # API Tests
+├── docker-compose.yml               # Production deployment
+├── docker-compose.dev.yml           # Development deployment
+├── deploy.sh / deploy.bat           # Deployment scripts
+└── README.md                        # This file
+```
+
+## 🎮 How It Works
+
+1. **Room Creation**: Host creates a room and receives a unique room ID
+2. **Player Joining**: Other players join using the room ID
+3. **Game Start**: Host starts the selection when 2+ players are ready
+4. **Turn-based Selection**: Players take turns selecting cricket players (10s timer)
+5. **Auto-selection**: System auto-selects if timer expires
+6. **Game Completion**: Game ends when all players have selected 5 players each
+
+## �🔧 Configuration
+
+### Frontend Environment Variables
+
+Create `client/.env` file:
 ```bash
-# Install dependencies
-cd server
-npm install
+# Backend API URL
+VITE_BACKEND_URL=http://localhost:3001
 
-# Start Redis
-redis-server
-
-# Configure environment
-cp .env.example .env
-# Edit .env with your settings
-
-# Development mode
-npm run dev
-
-# Production mode
-npm start
+# Development settings
+VITE_NODE_ENV=development
 ```
 
-### Option 3: Development with Docker
+### Backend Environment Variables
 
+Create `server/.env` file:
 ```bash
-# Start development environment
-docker-compose -f docker-compose.dev.yml up --build
+# Server Configuration
+PORT=3001
+NODE_ENV=development
 
-# Frontend separately (recommended for faster development)
-cd client && npm run dev
+# Redis Configuration
+REDIS_URL=redis://localhost:6379
+
+# CORS Configuration
+FRONTEND_URL=http://localhost:5173
+
+# Application Settings
+TURN_TIME_LIMIT=10
+PLAYERS_PER_USER=5
+MAX_USERS_PER_ROOM=10
+ROOM_TTL=3600
 ```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-| Variable | Description | Default | Docker Override |
-|----------|-------------|---------|-----------------|
-| PORT | Server port | 3001 | 3001 |
-| REDIS_URL | Redis connection | redis://localhost:6379 | redis://redis:6379 |
-| FRONTEND_URL | CORS origin | http://localhost:3000 | http://localhost:80 |
-| NODE_ENV | Environment | development | production |
 
 ### Application Configuration
 
@@ -226,469 +318,240 @@ GET /api/rooms/players/available
 
 | Event | Description | Payload Schema |
 |-------|-------------|----------------|
-| join-room | Join a room | `{ roomId: string, userId: string, userName: string }` |
-| start-selection | Begin selection process | `{}` |
-| select-player | Select a cricket player | `{ playerId: string }` |
-| leave-room | Leave current room | `{}` |
+| `join-room` | Join or create room | `{ roomId: string, userId: string, userName: string }` |
+| `start-selection` | Start player selection | `{}` |
+| `select-player` | Select a cricket player | `{ playerId: string }` |
 
 ### Server → Client Events
 
 | Event | Description | Payload Schema |
 |-------|-------------|----------------|
-| room-joined | Successfully joined room | `{ room: Room, userId: string }` |
-| user-joined | Another user joined | `{ user: User, room: Room }` |
-| user-left | User left room | `{ userId: string, userName: string, room: Room }` |
-| selection-started | Selection process began | `{ room: Room, turnOrder: string[] }` |
-| turn-started | Turn timer started | `{ userId: string, userName: string, timeLimit: number, room: Room }` |
-| player-selected | Player successfully selected | `{ userId: string, userName: string, player: Player, room: Room }` |
-| auto-selected | Auto-selection occurred | `{ userId: string, userName: string, player: Player, room: Room }` |
-| selection-ended | Selection process completed | `{ results: SelectionResults, room: Room }` |
-| room-updated | Room state changed | `{ room: Room }` |
-| error | Error occurred | `{ message: string, code?: string }` |
+| `room-joined` | User successfully joined room | `{ room: Room, userId: string }` |
+| `user-joined` | Another user joined room | `{ user: User, room: Room }` |
+| `user-left` | User left the room | `{ userId: string, userName: string }` |
+| `room-updated` | Room state updated | `{ room: Room }` |
+| `selection-started` | Selection phase began | `{ room: Room }` |
+| `turn-started` | User's turn to select | `{ userId: string, userName: string, timeLimit: number }` |
+| `player-selected` | Player was selected | `{ player: Player, userId: string, room: Room }` |
+| `auto-selected` | Auto-selection occurred | `{ player: Player, userId: string, room: Room }` |
+| `selection-ended` | Selection completed | `{ results: Array, room: Room }` |
+| `error` | Error occurred | `{ message: string }` |
 
-## 🎮 Application Flow
+### Frontend Socket Integration
 
-### 1. Room Creation & Joining
+**Socket Service Usage**:
+```javascript
+import { socketService } from './services/socketService.js';
 
-1. Host creates room via API
-2. Users join using room ID
-3. Host manages room settings
-4. Real-time updates via Socket.IO
+// Connect to server
+const socket = socketService.connect();
 
-### 2. Selection Process
+// Join room
+socketService.joinRoom('room123', 'John Doe');
 
-1. Host starts selection
-2. Turn-based player selection
-3. 10-second timer per turn
-4. Auto-selection on timeout
-5. Results aggregation
+// Listen for events
+socketService.on('room-joined', (data) => {
+  console.log('Joined room:', data.room);
+});
 
-## 🏗 Project Structure
+// Start selection
+socketService.startSelection();
 
-```
-server/
-├── config/
-│   ├── redis.js              # Redis connection & configuration
-│   └── database.js           # Database setup utilities
-├── constants/
-│   ├── index.js              # Application constants
-│   ├── players.js            # Cricket players data
-│   └── socketEvents.js       # Socket.IO event names
-├── controllers/
-│   ├── roomController.js     # HTTP route handlers
-│   ├── socketController.js   # Socket.IO event handlers
-│   └── playerController.js   # Player management
-├── models/
-│   ├── Room.js               # Room data model & validation
-│   ├── User.js               # User data model
-│   └── Player.js             # Player data model
-├── routes/
-│   ├── roomRoutes.js         # Room management routes
-│   ├── playerRoutes.js       # Player routes
-│   └── index.js              # Route aggregation
-├── services/
-│   ├── roomService.js        # Room business logic
-│   ├── socketService.js      # Socket.IO service layer
-│   ├── playerService.js      # Player management logic
-│   └── redisService.js       # Redis operations
-├── middleware/
-│   ├── validation.js         # Request validation
-│   ├── errorHandler.js       # Error handling
-│   └── cors.js               # CORS configuration
-├── utils/
-│   ├── logger.js             # Logging utilities
-│   └── helpers.js            # Helper functions
-├── tests/
-│   ├── unit/                 # Unit tests
-│   ├── integration/          # Integration tests
-│   └── socket/               # Socket.IO tests
-├── docker/
-│   ├── Dockerfile            # Production container
-│   ├── Dockerfile.dev        # Development container
-│   └── .dockerignore         # Docker ignore rules
-├── server.js                 # Main application entry
-├── simple-server.js          # Simplified server for testing
-├── package.json              # Dependencies & scripts
-├── .env.example              # Environment template
-└── .env.production           # Production environment
+// Select player
+socketService.selectPlayer('player_001');
 ```
 
 ## 🧪 Testing
 
-### Bruno API Testing Suite
+### Frontend Testing
 
-The project includes a comprehensive Bruno API testing collection located in `Cricket_selection_app_bruno_API_testing/`:
-
-#### Bruno Test Collection Structure
-
-```
-Cricket_selection_app_bruno_API_testing/
-├── bruno.json                    # Bruno configuration
-├── Health Check request.bru      # Health endpoint test
-├── creating room.bru             # Room creation test
-├── joining Room.bru              # Room joining test
-├── Getting Available Players.bru # Players endpoint test
-├── Get Room Info.bru             # Room details test
-├── Leave Room request.bru        # Leave room test
-└── Deleting Room.bru             # Room deletion test
-```
-
-#### Running Bruno Tests
-
-1. **Install Bruno**: Download from [Bruno Website](https://www.usebruno.com/)
-2. **Open Collection**: File → Open Collection → Select `Cricket_selection_app_bruno_API_testing`
-3. **Configure Environment**: Set base URL to `http://localhost:3001`
-4. **Run Tests**: Execute individual tests or run entire collection
-
-#### Test Scenarios Covered
-
-- ✅ **Health Check**: Server availability and status
-- ✅ **Room Creation**: Valid/invalid room creation scenarios
-- ✅ **Room Joining**: Multiple users joining rooms
-- ✅ **Player Management**: Available players retrieval
-- ✅ **Room Information**: Detailed room state retrieval
-- ✅ **Leave Room**: User leaving room scenarios
-- ✅ **Room Deletion**: Host deleting rooms
-
-### Custom Test Scripts
-
-#### Available Test Scripts
-
+**Development Testing**:
 ```bash
-# Socket.IO Connection Tests
-node test-socket.js              # Basic socket connection
-node test-simple.js              # Simple room operations
-node debug-socket.js             # Socket debugging
-
-# Room Flow Tests
-node test-room-flow.js           # Complete room workflow
-node test-two-users.js           # Multi-user scenarios
-node test-selection-start.js     # Selection process testing
-
-# API Tests
-node test-api.js                 # HTTP API testing
-node test-connection.js          # Connection testing
-node comprehensive-test.js       # Full system test
+cd client
+npm run dev
+# Open http://localhost:5173
+# Test room creation, joining, and player selection
 ```
 
-#### Running Tests
-
+**Build Testing**:
 ```bash
-# Start test server
-npm run test:server
-
-# Run specific test suites
-npm run test:unit          # Unit tests
-npm run test:integration   # Integration tests
-npm run test:socket        # Socket.IO tests
-
-# Run all tests with coverage
-npm run test:coverage
-
-# Custom test scripts
-node test-two-users.js     # Test multi-user scenarios
-node comprehensive-test.js # Full system test
+cd client
+npm run build
+npm run preview
 ```
 
-## 🐳 Docker Configuration
+### Backend Testing
 
-### Production Container (`Dockerfile`)
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-
-# Security: Non-root user
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
-
-# Dependencies
-COPY package*.json ./
-RUN npm ci --only=production
-
-# Application code
-COPY . .
-RUN chown -R nodejs:nodejs /app
-USER nodejs
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"
-
-EXPOSE 3001
-CMD ["node", "server.js"]
-```
-
-### Development Container (`Dockerfile.dev`)
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-
-# Install nodemon for hot reload
-RUN npm install -g nodemon
-
-# Dependencies (including dev dependencies)
-COPY package*.json ./
-RUN npm install
-
-# Application code
-COPY . .
-
-EXPOSE 3001
-CMD ["nodemon", "server.js"]
-```
-
-### Docker Compose Configuration
-
-#### Production Setup (`docker-compose.yml`)
-
-```yaml
-services:
-  # Redis database
-  redis:
-    image: redis:alpine
-    container_name: cricket-redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis-data:/data
-    command: ["redis-server", "--appendonly", "yes"]
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-  # Backend API server
-  backend:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    container_name: cricket-backend
-    ports:
-      - "3001:3001"
-    environment:
-      - NODE_ENV=production
-      - PORT=3001
-      - REDIS_URL=redis://redis:6379
-      - FRONTEND_URL=http://localhost:80
-    depends_on:
-      redis:
-        condition: service_healthy
-    restart: unless-stopped
-    networks:
-      - cricket-network
-
-volumes:
-  redis-data:
-    driver: local
-
-networks:
-  cricket-network:
-    driver: bridge
-```
-
-## 📊 Monitoring & Health Checks
-
-### Health Check Endpoint
-
-```http
-GET /health
-```
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2025-01-01T00:00:00.000Z",
-  "uptime": 3600,
-  "version": "1.0.0",
-  "services": {
-    "redis": "connected",
-    "socket": "active"
-  },
-  "memory": {
-    "used": "45.2 MB",
-    "total": "512 MB"
-  }
-}
-```
-
-### Docker Health Checks
-
-- **Interval**: 30 seconds
-- **Timeout**: 3 seconds
-- **Retries**: 3 attempts
-- **Start Period**: 5 seconds
-
-### Monitoring Commands
-
+**Bruno API Testing Suite**:
 ```bash
-# Container stats
-docker stats cricket-backend 
+# Install Bruno API Client
+# Import Cricket_selection_app_bruno_API_testing collection
+# Run comprehensive API tests
 
-# Resource usage
-docker-compose top
-
-# Service status
-docker-compose ps
-
-# Real-time logs
-docker-compose logs -f --tail=100
+# Test endpoints:
+# - Room creation
+# - Room joining
+# - Player selection
+# - Health checks
 ```
 
-## 🔒 Security Features
+**Socket.IO Testing**:
+```bash
+cd server
+node tests/socket.test.js
+# Tests real-time events and room management
+```
 
-### Container Security
+**Manual Testing**:
+```bash
+# Start backend
+cd server && npm run dev
 
-- ✅ **Non-root user**: Runs as nodejs user (UID 1001)
-- ✅ **Minimal base image**: Alpine Linux for reduced attack surface
-- ✅ **Health checks**: Automatic service monitoring
-- ✅ **Network isolation**: Custom Docker networks
+# Test health endpoint
+curl http://localhost:3001/health
 
-### Application Security
-
-- ✅ **Input validation**: Joi schema validation for all inputs
-- ✅ **CORS protection**: Configurable origin restrictions
-- ✅ **Rate limiting**: Ready for implementation
-- ✅ **Error handling**: Secure error messages
-- ✅ **Environment isolation**: Separate configs per environment
-
-### Redis Security
-
-- ✅ **Network isolation**: Container-to-container communication
-- ✅ **Data persistence**: Configurable with AOF
-- ✅ **Connection security**: URL-based authentication ready
+# Test room creation
+curl -X POST http://localhost:3001/api/rooms/create \
+  -H "Content-Type: application/json" \
+  -d '{"hostId":"test123","hostName":"Test User"}'
+```
 
 ## 🚀 Deployment
 
-### Local Development
+### Frontend Deployment (Vercel)
+
+**Current Production**: [cricket-team-selection-app.vercel.app](https://cricket-team-selection-app.vercel.app)
 
 ```bash
-# Quick start
-npm run dev
+# Deploy to Vercel
+cd client
+npm run build
+vercel --prod
 
-# With Docker
-docker-compose -f docker-compose.dev.yml up
+# Environment variables in Vercel:
+# VITE_BACKEND_URL=https://your-backend-url.com
 ```
 
-### Production Deployment
+### Backend Deployment Options
 
-#### Docker Deployment
-
+**Option 1: Railway**
 ```bash
-# Using deployment scripts
-./deploy.sh deploy        # Linux/Mac
-deploy.bat deploy         # Windows
+# Connect GitHub repository to Railway
+# Set environment variables:
+# PORT=3001
+# REDIS_URL=redis://redis:6379
+# NODE_ENV=production
+```
 
-# Manual deployment
+**Option 2: Render**
+```bash
+# Connect GitHub repository to Render
+# Add Redis add-on
+# Configure environment variables
+```
+
+**Option 3: Docker Deployment**
+```bash
+# Production deployment
 docker-compose up --build -d
 
-# Verify deployment
-curl http://localhost:3001/health
+# Development deployment
+docker-compose -f docker-compose.dev.yml up --build
 ```
 
-#### Cloud Deployment
+### Cloud Platform Deployment
 
-**Railway:**
-```bash
-# Connect to Railway
-railway login
-railway link
-railway up
-```
+**AWS/GCP/Azure**:
+- **Frontend**: Static hosting (S3, Cloud Storage, Blob Storage)
+- **Backend**: Container service (ECS, Cloud Run, Container Instances)
+- **Database**: Managed Redis (ElastiCache, Memorystore, Azure Cache)
 
-**Render:**
-- Connect GitHub repository
-- Set environment variables
-- Deploy from `server/` directory
+## 🔒 Security Features
 
-**AWS ECS:**
-- Push image to ECR
-- Create ECS service
-- Configure load balancer
+### Frontend Security
+- **Input Validation**: Client-side validation with sanitization
+- **Environment Variables**: Secure API URL configuration
+- **CORS Protection**: Proper origin validation
+- **XSS Prevention**: React's built-in XSS protection
+- **Secure Headers**: Content Security Policy ready
 
-### Environment-specific Configurations
+### Backend Security
+- **Input Validation**: Joi schema validation for all inputs
+- **CORS Configuration**: Configurable allowed origins
+- **Rate Limiting**: Built-in request rate limiting
+- **Error Handling**: Secure error messages without data leakage
+- **Non-root Containers**: Docker containers run as non-root user
+- **Environment Isolation**: Separate development/production configs
 
-#### Development
-```env
-NODE_ENV=development
-PORT=3001
-REDIS_URL=redis://localhost:6379
-FRONTEND_URL=http://localhost:3000
-DEBUG=socket.io:*
-```
+### Redis Security
+- **Connection Security**: Secure Redis connection strings
+- **Data Expiration**: TTL-based automatic data cleanup
+- **Access Control**: Redis AUTH when configured
 
-#### Production
-```env
-NODE_ENV=production
-PORT=3001
-REDIS_URL=redis://redis:6379
-FRONTEND_URL=https://your-domain.com
-```
+## ⚡ Performance Optimization
 
-## 🤝 Contributing
+### Frontend Performance
+- **Code Splitting**: Vite's automatic code splitting
+- **Tree Shaking**: Unused code elimination
+- **Asset Optimization**: Optimized images and fonts
+- **Bundle Analysis**: Built-in bundle size monitoring
+- **Lazy Loading**: Component-level lazy loading ready
 
-### Development Setup
+### Backend Performance
+- **Redis Caching**: Fast in-memory data storage
+- **Connection Pooling**: Efficient database connections
+- **Event Batching**: Optimized Socket.IO event handling
+- **Memory Management**: Efficient room and user data handling
+- **Compression**: Response compression enabled
 
-1. Fork the repository
-2. Create feature branch: `git checkout -b feature/amazing-feature`
-3. Install dependencies: `npm install`
-4. Start development server: `npm run dev`
-5. Run tests: `npm test`
-6. Commit changes: `git commit -m 'Add amazing feature'`
-7. Push to branch: `git push origin feature/amazing-feature`
-8. Create Pull Request
+### Real-time Performance
+- **WebSocket Optimization**: Efficient Socket.IO configuration
+- **Event Debouncing**: Reduced unnecessary event emissions
+- **State Synchronization**: Optimized room state updates
+- **Connection Management**: Automatic reconnection handling
 
-### Code Standards
-
-- **ESLint**: Follow configured linting rules
-- **Testing**: Maintain test coverage above 80%
-- **Documentation**: Update README for new features
-- **Docker**: Test containerized deployment
-
-## 🐛 Troubleshooting
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-#### Redis Connection Issues
-
+**Frontend Issues**:
 ```bash
-# Check Redis status
-redis-cli ping
-# Expected: PONG
+# Socket connection failed
+# Check backend URL in .env
+VITE_BACKEND_URL=http://localhost:3001
 
-# Docker Redis check
-docker-compose exec redis redis-cli ping
+# Build errors
+rm -rf node_modules package-lock.json
+npm install
 
-# Connection string issues
-# Ensure REDIS_URL format: redis://host:port
+# Vite dev server issues
+npm run dev -- --host 0.0.0.0 --port 5173
 ```
 
-#### Socket.IO Connection Problems
-
+**Backend Issues**:
 ```bash
-# Check CORS configuration
-# Verify FRONTEND_URL in environment
+# Redis connection failed
+redis-server  # Start Redis server
+redis-cli ping  # Test Redis connection
 
-# Debug socket connections
-DEBUG=socket.io:* npm run dev
+# Port already in use
+lsof -ti:3001 | xargs kill -9  # Kill process on port 3001
 
-# Test socket endpoint
-curl http://localhost:3001/socket.io/
+# Socket.IO connection issues
+# Check CORS configuration in server
+# Verify frontend URL in FRONTEND_URL env var
 ```
 
-#### Docker Issues
-
+**Docker Issues**:
 ```bash
+# Container build failed
+docker system prune -a  # Clean Docker cache
+docker-compose down -v  # Remove volumes
+docker-compose up --build --force-recreate
+
 # Port conflicts
-netstat -ano | findstr :3001
-taskkill /PID <PID> /F
-
-# Container logs
-docker-compose logs backend
+docker-compose down
+# Check docker-compose.yml port mappings
 
 # Rebuild containers
 docker-compose down -v
@@ -697,6 +560,16 @@ docker-compose up --build
 
 ### Debug Mode
 
+**Frontend Debug**:
+```bash
+# Enable Vite debug mode
+DEBUG=vite:* npm run dev
+
+# Socket.IO client debug (browser console)
+localStorage.debug = 'socket.io-client:*';
+```
+
+**Backend Debug**:
 ```bash
 # Enable comprehensive debugging
 DEBUG=* npm run dev
@@ -708,31 +581,158 @@ DEBUG=socket.io:* npm run dev
 DEBUG=app:* npm run dev
 ```
 
-## 📈 Performance Optimization
+## 📊 Monitoring & Analytics
 
-### Redis Optimization
+### Health Monitoring
 
-- **Connection pooling**: Implemented for high concurrency
-- **TTL management**: Automatic room cleanup
-- **Memory optimization**: Efficient data structures
+**Backend Health Check**:
+```http
+GET /health
 
-### Socket.IO Optimization
+Response:
+{
+  "status": "healthy",
+  "timestamp": "2025-01-01T00:00:00.000Z",
+  "uptime": 3600,
+  "version": "1.0.0",
+  "services": {
+    "redis": "connected",
+    "socket": "active"
+  }
+}
+```
 
-- **Event batching**: Reduced message frequency
-- **Room-based broadcasting**: Targeted message delivery
-- **Connection management**: Automatic reconnection handling
+**Container Monitoring**:
+```bash
+# Resource usage
+docker stats cricket-backend cricket-frontend
 
-### Container Optimization
+# Service status
+docker-compose ps
 
-- **Multi-stage builds**: Reduced image size
-- **Alpine Linux**: Minimal base image
-- **Health checks**: Proactive monitoring
+# Real-time logs
+docker-compose logs -f --tail=100
+```
+
+### Performance Metrics
+
+**Frontend Metrics**:
+- Bundle size monitoring via Vite analyzer
+- Lighthouse performance scores
+- Core Web Vitals tracking
+- Real-time user analytics (ready for integration)
+
+**Backend Metrics**:
+- API response times
+- Socket.IO connection counts
+- Redis performance metrics
+- Memory and CPU usage
+
+## 🤝 Contributing
+
+### Development Setup
+
+1. **Fork Repository**: Create your fork on GitHub
+2. **Clone Locally**: `git clone <your-fork-url>`
+3. **Install Dependencies**:
+   ```bash
+   cd server && npm install
+   cd ../client && npm install
+   ```
+4. **Start Services**:
+   ```bash
+   # Terminal 1: Redis
+   redis-server
+
+   # Terminal 2: Backend
+   cd server && npm run dev
+
+   # Terminal 3: Frontend
+   cd client && npm run dev
+   ```
+5. **Make Changes**: Implement your feature/fix
+6. **Test Changes**: Run test suites and verify functionality
+7. **Commit Changes**: `git commit -m 'Add amazing feature'`
+8. **Push Changes**: `git push origin feature/amazing-feature`
+9. **Create PR**: Submit pull request for review
+
+### Code Standards
+
+**Frontend Standards**:
+- Use functional components with hooks
+- Follow ESLint configuration
+- Use TailwindCSS utility classes
+- Implement proper error boundaries
+
+**Backend Standards**:
+- Follow Express.js best practices
+- Use Joi for input validation
+- Implement proper error handling
+- Write comprehensive tests
+
+**General Standards**:
+- Write clear commit messages
+- Update documentation for new features
+- Maintain test coverage above 80%
+- Test Docker deployment before submitting
+
+## 📞 Support
+
+### Getting Help
+
+- 📖 **Documentation**: Check README files in `/client` and `/server`
+- 🐛 **Issues**: Create GitHub issue with reproduction steps
+- 💬 **Discussions**: Use GitHub Discussions for questions
+- 🔧 **Development**: Check browser DevTools and server logs
+
+### Useful Commands
+
+```bash
+# Quick health check
+curl http://localhost:3001/health
+
+# Reset development environment
+rm -rf client/node_modules server/node_modules
+cd client && npm install
+cd ../server && npm install
+
+# Full system restart
+docker-compose down -v
+docker-compose up --build -d
+
+# Check all services
+docker-compose ps
+curl http://localhost:3001/health
+curl http://localhost/health
+```
+
+### Browser Compatibility
+
+| Browser | Version | Frontend | Backend API |
+|---------|---------|----------|-------------|
+| Chrome | 90+ | ✅ Full | ✅ Full |
+| Firefox | 88+ | ✅ Full | ✅ Full |
+| Safari | 14+ | ✅ Full | ✅ Full |
+| Edge | 90+ | ✅ Full | ✅ Full |
+| Mobile Safari | 14+ | ✅ Full | ✅ Full |
+| Chrome Mobile | 90+ | ✅ Full | ✅ Full |
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Socket.IO team for excellent real-time communication
-- Redis team for robust caching solution
-- Docker team for containerization platform
-- Express.js team for web framework
+- **Socket.IO Team**: Excellent real-time communication framework
+- **Redis Team**: Robust caching and persistence solution
+- **Vercel Team**: Seamless frontend deployment platform
+- **React Team**: Powerful UI library with excellent developer experience
+- **Vite Team**: Lightning-fast build tool and development server
+- **TailwindCSS Team**: Utility-first CSS framework
+- **Docker Team**: Containerization platform for consistent deployments
 
 ---
+
+**Built with ❤️ for cricket fans and developers**
+
+*This application demonstrates modern full-stack development with real-time features, cloud deployment, and production-ready architecture. Perfect for learning WebSocket communication, React state management, and containerized deployments.*
