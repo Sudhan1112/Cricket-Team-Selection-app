@@ -20,8 +20,10 @@ const joinRoomSchema = Joi.object({
 // Create a new room
 router.post('/create', async (req, res) => {
   try {
+    console.log('📥 Room creation request received:', req.body);
     const { error, value } = createRoomSchema.validate(req.body);
     if (error) {
+      console.log('❌ Validation error:', error.details);
       return res.status(400).json({
         success: false,
         message: 'Validation error',
@@ -30,7 +32,9 @@ router.post('/create', async (req, res) => {
     }
 
     const { hostId, hostName } = value;
+    console.log('🏗️ Creating room for:', { hostId, hostName });
     const room = await roomService.createRoom(hostId, hostName);
+    console.log('✅ Room created successfully:', room.id);
 
     res.status(201).json({
       success: true,

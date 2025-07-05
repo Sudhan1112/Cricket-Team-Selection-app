@@ -17,9 +17,11 @@ class SocketController {
     // Handle user joining a room
     socket.on(SOCKET_EVENTS.JOIN_ROOM, async (data) => {
       try {
+        console.log('📥 JOIN_ROOM event received:', data);
         const { roomId, userId, userName } = data;
-        
+
         if (!roomId || !userId || !userName) {
+          console.log('❌ Missing required fields:', { roomId, userId, userName });
           socket.emit(SOCKET_EVENTS.ERROR, { message: 'Missing required fields' });
           return;
         }
@@ -29,7 +31,27 @@ class SocketController {
           await this.handleLeaveRoom(socket, io);
         }
 
-        const room = await roomService.joinRoom(roomId, userId, userName);
+        // Try to join room, create if it doesn't exist
+        let room;
+        try {
+          console.log('🔍 Attempting to join existing room:', roomId);
+          room = await roomService.joinRoom(roomId, userId, userName);
+          console.log('✅ Successfully joined existing room');
+        } catch (error) {
+          console.log('❌ Join room error:', error.message);
+          if (error.message.includes('Room not found')) {
+            console.log('🏗️ Room not found, creating new room:', roomId);
+            room = await roomService.createRoom(userId, userName);
+            console.log('✅ Room created with ID:', room.id);
+            // Update the room ID to match the requested one
+            room.id = roomId;
+            await roomService.saveRoom(room);
+            await roomService.setUserRoom(userId, roomId);
+            console.log('✅ Room ID updated and saved:', roomId);
+          } else {
+            throw error;
+          }
+        }
         
         // Update socket data
         socket.userId = userId;
@@ -40,10 +62,12 @@ class SocketController {
         this.userSockets.set(userId, socket.id);
 
         // Send room data to user
+        console.log('📤 Emitting ROOM_JOINED event to user:', userId);
         socket.emit(SOCKET_EVENTS.ROOM_JOINED, {
           room: this.serializeRoom(room),
           userId: userId
         });
+        console.log('✅ ROOM_JOINED event emitted');
 
         // Notify other users in the room
         socket.to(roomId).emit(SOCKET_EVENTS.USER_JOINED, {
@@ -58,12 +82,14 @@ class SocketController {
 
         console.log(`User ${userName} (${userId}) joined room ${roomId}`);
       } catch (error) {
+        console.error('❌ JOIN_ROOM error:', error.message);
         socket.emit(SOCKET_EVENTS.ERROR, { message: error.message });
       }
     });
 
     // Handle starting selection
-    socket.on(SOCKET_EVENTS.START_SELECTION, async () => {
+    socket.on(SOCKET_EVENTS.START_SELECTION, async (data) => {
+      console.log('🎮 START_SELECTION event received:', { socketId: socket.id, roomId: socket.roomId, data });
       try {
         if (!socket.roomId || !socket.userId) {
           socket.emit(SOCKET_EVENTS.ERROR, { message: 'Not in a room' });

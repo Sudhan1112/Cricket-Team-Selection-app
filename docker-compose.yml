@@ -1,14 +1,23 @@
 version: '3.8'
+
 services:
+  # Redis database
   redis:
     image: redis:alpine
-    container_name: redis-dev
+    container_name: cricket-redis
     ports:
       - "6379:6379"
     volumes:
       - redis-data:/data
     command: ["redis-server", "--appendonly", "yes"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
+  # Backend API server
   backend:
     build:
       context: ./server
@@ -17,11 +26,39 @@ services:
     ports:
       - "3001:3001"
     environment:
+      - NODE_ENV=production
       - PORT=3001
       - REDIS_URL=redis://redis:6379
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=http://localhost:80
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    volumes:
+      - ./server/.env:/app/.env:ro
+    networks:
+      - cricket-network
+
+  # Frontend React application
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: cricket-frontend
+    ports:
+      - "80:80"
+    environment:
+      - VITE_BACKEND_URL=http://localhost:3001
+    depends_on:
+      - backend
+    restart: unless-stopped
+    networks:
+      - cricket-network
 
 volumes:
   redis-data:
+    driver: local
+
+networks:
+  cricket-network:
+    driver: bridge

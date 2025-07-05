@@ -10,23 +10,42 @@ class RoomService {
 
   async createRoom(hostId, hostName) {
     try {
+      console.log('🏗️ Creating room for:', { hostId, hostName });
       const room = new Room(hostId, hostName);
+      console.log('📦 Room object created:', room.id);
+
+      console.log('💾 About to save room...');
       await this.saveRoom(room);
+      console.log('✅ Room saved successfully');
+
+      console.log('🔗 About to set user room association...');
       await this.setUserRoom(hostId, room.id);
+      console.log('✅ User room association set successfully');
+
+      console.log('🎉 Room creation completed:', room.id);
       return room;
     } catch (error) {
+      console.error('❌ Room creation failed:', error.message);
       throw new Error(`Failed to create room: ${error.message}`);
     }
   }
 
   async getRoom(roomId) {
     try {
-      const roomData = await redisClient.get(`${this.roomPrefix}${roomId}`);
+      // Normalize room ID to lowercase for consistent lookup
+      const normalizedRoomId = roomId.toLowerCase();
+      const key = `${this.roomPrefix}${normalizedRoomId}`;
+
+      console.log('🔍 Looking for room:', { roomId, normalizedRoomId, key });
+      const roomData = await redisClient.get(key);
+      console.log('📦 Room data found:', roomData ? 'YES' : 'NO');
+
       if (!roomData) {
         return null;
       }
       return Room.fromJSON(JSON.parse(roomData));
     } catch (error) {
+      console.error('❌ Failed to get room:', error);
       throw new Error(`Failed to get room: ${error.message}`);
     }
   }
@@ -34,9 +53,16 @@ class RoomService {
   async saveRoom(room) {
     try {
       const roomData = JSON.stringify(room.toJSON());
-      await redisClient.setEx(`${this.roomPrefix}${room.id}`, ROOM_TTL, roomData);
+      // Normalize room ID to lowercase for consistent storage
+      const normalizedRoomId = room.id.toLowerCase();
+      const key = `${this.roomPrefix}${normalizedRoomId}`;
+
+      console.log('💾 Saving room:', { roomId: room.id, normalizedRoomId, key });
+      await redisClient.set(key, roomData, { EX: ROOM_TTL });
+      console.log('✅ Room saved successfully');
       return true;
     } catch (error) {
+      console.error('❌ Failed to save room:', error);
       throw new Error(`Failed to save room: ${error.message}`);
     }
   }
@@ -50,7 +76,9 @@ class RoomService {
           await this.removeUserRoom(user.id);
         }
       }
-      await redisClient.del(`${this.roomPrefix}${roomId}`);
+      // Normalize room ID to lowercase for consistent deletion
+      const normalizedRoomId = roomId.toLowerCase();
+      await redisClient.del(`${this.roomPrefix}${normalizedRoomId}`);
       return true;
     } catch (error) {
       throw new Error(`Failed to delete room: ${error.message}`);
@@ -131,8 +159,14 @@ class RoomService {
 
   async setUserRoom(userId, roomId) {
     try {
-      await redisClient.setEx(`${this.userRoomPrefix}${userId}`, ROOM_TTL, roomId);
+      console.log('🔗 Setting user room association:', { userId, roomId });
+      const key = `${this.userRoomPrefix}${userId}`;
+      console.log('🔑 Redis key:', key);
+
+      await redisClient.setEx(key, ROOM_TTL, roomId);
+      console.log('✅ User room association set successfully');
     } catch (error) {
+      console.error('❌ Failed to set user room:', error.message);
       throw new Error(`Failed to set user room: ${error.message}`);
     }
   }

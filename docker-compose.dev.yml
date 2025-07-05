@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  # Redis database for development
+  redis:
+    image: redis:alpine
+    container_name: cricket-redis-dev
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-dev-data:/data
+    command: ["redis-server", "--appendonly", "yes"]
+    restart: unless-stopped
+
+  # Backend with hot reload for development
+  backend-dev:
+    build:
+      context: ./server
+      dockerfile: Dockerfile.dev
+    container_name: cricket-backend-dev
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=development
+      - PORT=3001
+      - REDIS_URL=redis://redis:6379
+      - FRONTEND_URL=http://localhost:5173
+    depends_on:
+      - redis
+    restart: unless-stopped
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+    networks:
+      - cricket-dev-network
+
+volumes:
+  redis-dev-data:
+    driver: local
+
+networks:
+  cricket-dev-network:
+    driver: bridge

@@ -12,14 +12,38 @@ const mockRedisClient = {
   },
 
   async set(key, value, options = {}) {
-    memoryStore.set(key, value);
-    if (options.EX) {
-      // Simulate expiration (simplified)
+    console.log('🔧 Mock Redis set called:', { key, value: value?.length || value, options });
+    try {
+      memoryStore.set(key, value);
+      if (options.EX) {
+        console.log('⏰ Setting expiration for', options.EX, 'seconds');
+        // Simulate expiration (simplified)
+        setTimeout(() => {
+          memoryStore.delete(key);
+        }, options.EX * 1000);
+      }
+      console.log('✅ Mock Redis set completed successfully');
+      return 'OK';
+    } catch (error) {
+      console.error('❌ Mock Redis set error:', error);
+      throw error;
+    }
+  },
+
+  async setEx(key, seconds, value) {
+    console.log('🔧 Mock Redis setEx called:', { key, seconds, value });
+    try {
+      memoryStore.set(key, value);
+      // Simulate expiration
       setTimeout(() => {
         memoryStore.delete(key);
-      }, options.EX * 1000);
+      }, seconds * 1000);
+      console.log('✅ Mock Redis setEx completed successfully');
+      return 'OK';
+    } catch (error) {
+      console.error('❌ Mock Redis setEx error:', error);
+      throw error;
     }
-    return 'OK';
   },
 
   async del(key) {
@@ -43,30 +67,34 @@ const mockRedisClient = {
   }
 };
 
-let redisClient;
+// Initialize with mock client immediately
+let redisClient = mockRedisClient;
 
-// Try to connect to Redis, fallback to memory store
-(async () => {
+// Try to connect to Redis, fallback to memory store (non-blocking)
+setTimeout(async () => {
   try {
-    redisClient = createClient({
+    const realRedisClient = createClient({
       url: process.env.REDIS_URL || 'redis://localhost:6379',
       socket: {
-        connectTimeout: 5000,
+        connectTimeout: 2000,
         lazyConnect: true
       }
     });
 
-    redisClient.on('error', (err) => {
+    realRedisClient.on('error', (err) => {
       console.warn('Redis Client Error (using memory fallback):', err.message);
     });
 
-    await redisClient.connect();
+    await realRedisClient.connect();
     console.log('✅ Connected to Redis');
+
+    // Only replace the mock client if real Redis connection succeeds
+    redisClient = realRedisClient;
 
   } catch (error) {
     console.warn('⚠️  Redis not available, using in-memory storage for development');
-    redisClient = mockRedisClient;
+    // redisClient is already set to mockRedisClient
   }
-})();
+}, 100); // Start Redis connection attempt after 100ms
 
 module.exports = redisClient;
