@@ -25,15 +25,16 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Create non-root user for security
-RUN addgroup -g 1001 -S nginx
-RUN adduser -S nginx -u 1001
-
-# Change ownership of nginx directories
-RUN chown -R nginx:nginx /var/cache/nginx && \
+# Create directories and set permissions for nginx user
+RUN mkdir -p /var/cache/nginx /var/log/nginx /run/nginx && \
+    chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
     chown -R nginx:nginx /etc/nginx/conf.d && \
-    chown -R nginx:nginx /usr/share/nginx/html
+    chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /run/nginx && \
+    chmod -R 755 /var/cache/nginx && \
+    chmod -R 755 /var/log/nginx && \
+    chmod -R 755 /run/nginx
 
 # Switch to non-root user
 USER nginx
